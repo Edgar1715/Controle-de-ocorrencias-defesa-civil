@@ -10,10 +10,10 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  cpf?: string; // Novo campo
-  recoveryEmail?: string; // Novo campo
+  cpf?: string;
+  recoveryEmail?: string;
   avatarUrl?: string;
-  accessToken?: string; // Token OAuth2 para API do Google Sheets (Opcional agora)
+  // accessToken removed (Sheets replaced by Firebase)
 }
 
 export enum TicketStatus {
@@ -40,10 +40,9 @@ export interface Ticket {
   title: string;
   description: string;
   
-  // Novos campos solicitados
-  requesterName?: string; // Nome do Solicitante
-  phone?: string;         // Telefone
-  neighborhood?: string;  // Bairro
+  requesterName?: string; 
+  phone?: string;         
+  neighborhood?: string;  
 
   address: string;
   location?: GeoLocation;
@@ -57,7 +56,6 @@ export interface Ticket {
   aiAnalysis?: string; // Gemini analysis / Observação
 }
 
-// Mock Auth Response
 export interface AuthResponse {
   user: User;
   token: string;

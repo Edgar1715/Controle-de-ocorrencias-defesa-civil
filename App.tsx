@@ -41,14 +41,13 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (email: string, role: UserRole, photoUrl?: string, name?: string, accessToken?: string) => {
+  const handleLogin = (email: string, role: UserRole, photoUrl?: string, name?: string) => {
     const newUser: User = {
       id: Math.random().toString(),
       name: name || email.split('@')[0], // Use Google name or fallback to email part
       email,
       role,
-      avatarUrl: photoUrl,
-      accessToken: accessToken
+      avatarUrl: photoUrl
     };
     StorageService.saveCurrentUser(newUser);
     setUser(newUser);

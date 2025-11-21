@@ -11,7 +11,7 @@ const CUSTOM_LOGO_KEY = 'dc_custom_logo';
 
 // Admin Credentials
 const ADMIN_CREDENTIALS = {
-  id: 'JcxBmDa5TrZtrrZm550Qj0nOynA3', // UID solicitado pelo usuário
+  id: 'JcxBmDa5TrZtrrZm550Qj0nOynA3', // UID Solicitado
   name: 'Edgar Carolino',
   email: 'edgarcarolino.2022@gmail.com',
   password: '11deJunho@',
@@ -135,15 +135,6 @@ export const StorageService = {
     const { password: _, ...safeUser } = user;
     StorageService.saveCurrentUser(safeUser);
     return { success: true, user: safeUser };
-  },
-
-  updateCurrentUserToken: (accessToken: string) => {
-    // Deprecated: Google Auth Token
-    const user = StorageService.getCurrentUser();
-    if (user) {
-      user.accessToken = accessToken;
-      StorageService.saveCurrentUser(user);
-    }
   },
 
   // --- USER MANAGEMENT (ADMIN ONLY) ---

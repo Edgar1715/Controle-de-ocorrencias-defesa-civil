@@ -245,7 +245,7 @@ export const UserManagement: React.FC = () => {
                    <textarea 
                       value={firebaseConfig} 
                       onChange={e => setFirebaseConfig(e.target.value)}
-                      className="w-full border rounded p-2 text-xs font-mono h-32 bg-gray-50 text-gray-800" 
+                      className="w-full border border-gray-300 rounded p-2 text-xs font-mono h-32 bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent" 
                       placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }'
                    />
                 </div>
@@ -292,17 +292,17 @@ export const UserManagement: React.FC = () => {
             <form onSubmit={handleAddUser} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Nome Completo</label>
-                <input type="text" required value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                <input type="text" required value={newName} onChange={e => setNewName(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1">CPF</label>
-                  <input type="text" required value={newCpf} onChange={e => setNewCpf(e.target.value)} placeholder="000.000.000-00" className="w-full border rounded p-2 text-sm" />
+                  <input type="text" required value={newCpf} onChange={e => setNewCpf(e.target.value)} placeholder="000.000.000-00" className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1">Cargo Inicial</label>
-                  <select value={newRole} onChange={e => setNewRole(e.target.value as UserRole)} className="w-full border rounded p-2 text-sm">
+                  <select value={newRole} onChange={e => setNewRole(e.target.value as UserRole)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent">
                     <option value={UserRole.OPERATOR}>Operador</option>
                     <option value={UserRole.COORDINATOR}>Coordenador</option>
                     <option value={UserRole.ADMIN}>Administrador</option>
@@ -313,17 +313,17 @@ export const UserManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1">E-mail (Login)</label>
-                  <input type="email" required value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                  <input type="email" required value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1">E-mail Recuperação</label>
-                  <input type="email" required value={newRecoveryEmail} onChange={e => setNewRecoveryEmail(e.target.value)} className="w-full border rounded p-2 text-sm" />
+                  <input type="email" required value={newRecoveryEmail} onChange={e => setNewRecoveryEmail(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">Senha Temporária</label>
-                <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full border rounded p-2 text-sm" placeholder="Defina a senha inicial" />
+                <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-civil-orange focus:border-transparent" placeholder="Defina a senha inicial" />
               </div>
 
               <div className="pt-4 flex justify-end gap-2">
@@ -381,7 +381,7 @@ export const UserManagement: React.FC = () => {
                       onChange={(e) => handleRoleChange(user.email, e.target.value as UserRole)}
                       disabled={!canEditPermissions || user.email === currentUser?.email}
                       title={!canEditPermissions ? "Apenas administradores podem alterar permissões" : "Alterar cargo"}
-                      className={`block w-full rounded-md border-gray-300 shadow-sm text-sm font-medium p-2 disabled:opacity-60 disabled:cursor-not-allowed
+                      className={`block w-full rounded-md border-gray-300 shadow-sm text-sm font-medium p-2 disabled:opacity-60 disabled:cursor-not-allowed bg-white text-gray-900
                         ${user.role === UserRole.ADMIN ? 'text-red-700 bg-red-50' : 
                           user.role === UserRole.COORDINATOR ? 'text-purple-700 bg-purple-50' : 'text-green-700 bg-green-50'}
                         ${canEditPermissions ? 'focus:border-civil-orange focus:ring focus:ring-civil-orange focus:ring-opacity-50' : ''}

@@ -5,7 +5,7 @@ import { DefesaCivilLogo } from '../components/Logo';
 import { StorageService } from '../services/storageService';
 
 interface LoginProps {
-  onLogin: (email: string, role: UserRole, photoUrl?: string, name?: string, accessToken?: string) => void;
+  onLogin: (email: string, role: UserRole, photoUrl?: string, name?: string) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -26,8 +26,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         result.user.email,
         result.user.role,
         result.user.avatarUrl,
-        result.user.name,
-        result.user.accessToken
+        result.user.name
       );
     } else {
       setError(result.message || 'Erro ao efetuar login');
