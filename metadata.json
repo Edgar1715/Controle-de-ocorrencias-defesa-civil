@@ -1,0 +1,9 @@
+{
+  "name": "Copy of Defesa Civil Bertioga - Gestão de Ocorrências",
+  "description": "Sistema de gestão de chamados e vistorias para a Defesa Civil de Bertioga com geolocalização e análise inteligente.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
