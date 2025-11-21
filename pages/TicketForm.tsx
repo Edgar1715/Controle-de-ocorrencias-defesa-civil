@@ -102,9 +102,8 @@ export const TicketForm: React.FC = () => {
       setIsSaving(false);
       navigate('/');
     } catch (error) {
-      // Salvo localmente, mas falhou na planilha
       console.error("Erro no fluxo de salvamento:", error);
-      alert("O chamado foi salvo localmente, mas houve um erro ao enviar para a Planilha Google. Verifique sua conexão na aba 'Equipe'.");
+      alert("O chamado foi salvo localmente, mas houve um erro ao enviar para o banco de dados. Verifique sua conexão.");
       setIsSaving(false);
       navigate('/');
     }
@@ -136,7 +135,7 @@ export const TicketForm: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent"
+                  className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent placeholder-gray-400"
                   placeholder="Nome completo"
                   value={requesterName}
                   onChange={(e) => setRequesterName(e.target.value)}
@@ -147,7 +146,7 @@ export const TicketForm: React.FC = () => {
                 <input
                   type="tel"
                   required
-                  className="w-full rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent"
+                  className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent placeholder-gray-400"
                   placeholder="(13) 99999-9999"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -167,7 +166,7 @@ export const TicketForm: React.FC = () => {
             <input
               type="text"
               required
-              className="w-full rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent"
+              className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent placeholder-gray-400"
               placeholder="Ex: Queda de árvore, Alagamento"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -179,7 +178,7 @@ export const TicketForm: React.FC = () => {
             <textarea
               required
               rows={4}
-              className="w-full rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent"
+              className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent placeholder-gray-400"
               placeholder="Descreva a situação, riscos e danos..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -224,7 +223,7 @@ export const TicketForm: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent"
+                  className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent placeholder-gray-400"
                   placeholder="Rua, Número"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -235,7 +234,7 @@ export const TicketForm: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent"
+                  className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-civil-orange focus:border-transparent placeholder-gray-400"
                   placeholder="Ex: Centro, Riviera"
                   value={neighborhood}
                   onChange={(e) => setNeighborhood(e.target.value)}

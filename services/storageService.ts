@@ -1,30 +1,41 @@
 
 import { Ticket, TicketStatus, TicketPriority, User, UserRole } from '../types';
-import { SheetsService } from './sheetsService';
+import { FirebaseService, FirebaseConfig } from './firebaseService';
 
 // Constants for LocalStorage keys
 const TICKETS_KEY = 'dc_bertioga_tickets';
 const USER_SESSION_KEY = 'dc_current_user';
-const USERS_DB_KEY = 'dc_users_db'; // "Banco de dados" de usuários
-const SPREADSHEET_ID_KEY = 'dc_sheet_id';
-const CLIENT_ID_KEY = 'dc_client_id';
+const USERS_DB_KEY = 'dc_users_db';
+const FIREBASE_CONFIG_KEY = 'dc_firebase_config';
+const CUSTOM_LOGO_KEY = 'dc_custom_logo';
 
-// Admin Credentials (Hardcoded conforme solicitado)
+// Admin Credentials
 const ADMIN_CREDENTIALS = {
+  id: 'JcxBmDa5TrZtrrZm550Qj0nOynA3', // UID solicitado pelo usuário
   name: 'Edgar Carolino',
   email: 'edgarcarolino.2022@gmail.com',
   password: '11deJunho@',
-  cpf: '000.000.000-00', // Placeholder
+  cpf: '000.000.000-00',
   recoveryEmail: 'edgarcarolino.2022@gmail.com',
   role: UserRole.ADMIN
 };
 
-// ID padrão fornecido pelo usuário
-const DEFAULT_SHEET_ID = '1jx6w0zTpGUSCxahIx985EU-rxLlIx5z8jEU5gYjpT9A';
-
-// Interface interna para armazenar senha (não exposta no type User)
+// Interface interna para armazenar senha
 interface StoredUser extends User {
   password?: string;
+}
+
+// --- INICIALIZAÇÃO ---
+
+// Tenta inicializar o Firebase ao carregar o script se houver config
+const storedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
+if (storedConfig) {
+  try {
+    const config = JSON.parse(storedConfig);
+    FirebaseService.init(config);
+  } catch (e) {
+    console.error("Configuração inválida do Firebase no Storage.");
+  }
 }
 
 // Seed initial data if empty
@@ -33,16 +44,16 @@ const seedLocalData = () => {
     const tickets: Ticket[] = [
       {
         id: 'CH-LOCAL-001',
-        title: 'Exemplo Local (Sem Planilha)',
-        description: 'Este dado existe apenas no navegador local.',
+        title: 'Exemplo Local (Offline)',
+        description: 'Este dado existe apenas no navegador local enquanto o banco de dados não é conectado.',
         address: 'Rua Exemplo, 00',
         neighborhood: 'Centro',
-        requesterName: 'João da Silva',
+        requesterName: 'Sistema',
         phone: '(13) 99999-9999',
         location: { latitude: -23.853, longitude: -46.142 },
         status: TicketStatus.OPEN,
         priority: TicketPriority.LOW,
-        createdBy: '1',
+        createdBy: 'JcxBmDa5TrZtrrZm550Qj0nOynA3',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         photos: [],
@@ -62,7 +73,7 @@ const seedLocalData = () => {
   // Verifica se o Admin existe, se não ou se senha mudou, atualiza/cria
   const adminIndex = usersDb.findIndex(u => u.email === ADMIN_CREDENTIALS.email);
   const adminUser: StoredUser = {
-    id: 'admin-edgar',
+    id: ADMIN_CREDENTIALS.id,
     name: ADMIN_CREDENTIALS.name,
     email: ADMIN_CREDENTIALS.email,
     role: ADMIN_CREDENTIALS.role,
@@ -72,7 +83,6 @@ const seedLocalData = () => {
   };
 
   if (adminIndex >= 0) {
-    // Garante que a senha esteja correta conforme hardcode
     usersDb[adminIndex] = adminUser;
   } else {
     usersDb.push(adminUser);
@@ -101,14 +111,13 @@ export const StorageService = {
       password: data.password,
       cpf: data.cpf,
       recoveryEmail: data.recoveryEmail,
-      role: UserRole.OPERATOR, // Padrão para novos cadastros
+      role: UserRole.OPERATOR,
       avatarUrl: undefined
     };
 
     users.push(newUser);
     localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
 
-    // Retorna usuário sem a senha
     const { password, ...safeUser } = newUser;
     return { success: true, user: safeUser };
   },
@@ -129,6 +138,7 @@ export const StorageService = {
   },
 
   updateCurrentUserToken: (accessToken: string) => {
+    // Deprecated: Google Auth Token
     const user = StorageService.getCurrentUser();
     if (user) {
       user.accessToken = accessToken;
@@ -141,7 +151,6 @@ export const StorageService = {
   getAllUsers: (): User[] => {
     const usersStr = localStorage.getItem(USERS_DB_KEY);
     const users: StoredUser[] = usersStr ? JSON.parse(usersStr) : [];
-    // Return users without password
     return users.map(({ password, ...u }) => u);
   },
 
@@ -160,54 +169,60 @@ export const StorageService = {
   },
 
   // --- CONFIG MANAGEMENT ---
-  
-  getSpreadsheetId: (): string => {
-    // Prioriza o que está no LocalStorage (configurado pelo usuário)
-    const storedId = localStorage.getItem(SPREADSHEET_ID_KEY);
-    return storedId && storedId.trim() !== '' ? storedId : DEFAULT_SHEET_ID;
+
+  getFirebaseConfig: (): string => {
+    return localStorage.getItem(FIREBASE_CONFIG_KEY) || '';
   },
 
-  setSpreadsheetId: (id: string) => {
-    let cleanId = id;
-    if (id.includes('/spreadsheets/d/')) {
-      const match = id.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-      if (match && match[1]) cleanId = match[1];
+  setFirebaseConfig: (configJson: string) => {
+    // Tenta validar JSON
+    try {
+      const config = JSON.parse(configJson);
+      if (!config.projectId) throw new Error("Config inválida");
+      
+      localStorage.setItem(FIREBASE_CONFIG_KEY, configJson);
+      
+      // Tenta inicializar
+      const success = FirebaseService.init(config);
+      return success;
+    } catch (e) {
+      console.error("Erro ao salvar config:", e);
+      return false;
     }
-    localStorage.setItem(SPREADSHEET_ID_KEY, cleanId);
   },
 
-  getClientId: (): string => {
-    return localStorage.getItem(CLIENT_ID_KEY) || '';
+  getCustomLogo: (): string | null => {
+    return localStorage.getItem(CUSTOM_LOGO_KEY);
   },
 
-  setClientId: (id: string) => {
-    localStorage.setItem(CLIENT_ID_KEY, id);
+  setCustomLogo: (base64Image: string) => {
+    localStorage.setItem(CUSTOM_LOGO_KEY, base64Image);
+  },
+
+  removeCustomLogo: () => {
+    localStorage.removeItem(CUSTOM_LOGO_KEY);
   },
 
   // --- DATA OPERATIONS ---
 
   getTickets: async (): Promise<Ticket[]> => {
-    const user = StorageService.getCurrentUser();
-    const sheetId = StorageService.getSpreadsheetId();
-    
-    // If user has a Google Access Token
-    if (user && user.accessToken) {
+    // Se Firebase estiver conectado, usa ele
+    if (FirebaseService.isInitialized()) {
       try {
-        console.log(`[Sync] Buscando dados da Planilha (${sheetId})...`);
-        const sheetTickets = await SheetsService.fetchTickets(user.accessToken, sheetId);
+        console.log("[Sync] Buscando dados do Firebase...");
+        const fbTickets = await FirebaseService.fetchTickets();
         
-        // Atualiza cache local com dados da planilha
-        localStorage.setItem(TICKETS_KEY, JSON.stringify(sheetTickets));
-        return sheetTickets;
+        // Atualiza cache local para backup
+        localStorage.setItem(TICKETS_KEY, JSON.stringify(fbTickets));
+        return fbTickets;
       } catch (error) {
-        console.error("[Sync] Erro ao acessar Planilha (usando cache local):", error);
-        // Fallback para local
-        const data = localStorage.getItem(TICKETS_KEY);
-        return data ? JSON.parse(data) : [];
+        console.error("[Sync] Erro ao acessar Firebase (usando cache local):", error);
       }
+    } else {
+      console.log("[Sync] Firebase não configurado. Usando modo offline.");
     }
 
-    // Local Storage Mode
+    // Fallback para Local Storage
     const data = localStorage.getItem(TICKETS_KEY);
     return data ? JSON.parse(data) : [];
   },
@@ -218,13 +233,12 @@ export const StorageService = {
   },
 
   getTicketById: async (id: string): Promise<Ticket | undefined> => {
-    const tickets = await StorageService.getTickets(); // Tenta pegar atualizado
-    const localTicket = tickets.find(t => t.id === id);
-    return localTicket;
+    const tickets = await StorageService.getTickets();
+    return tickets.find(t => t.id === id);
   },
 
   saveTicket: async (ticket: Ticket): Promise<void> => {
-    // 1. Save Locally First (Always safe)
+    // 1. Save Locally First (Optimistic UI)
     const tickets = StorageService.getTicketsLocal();
     const existingIndex = tickets.findIndex(t => t.id === ticket.id);
     
@@ -234,29 +248,18 @@ export const StorageService = {
       tickets.unshift(ticket);
     }
     localStorage.setItem(TICKETS_KEY, JSON.stringify(tickets));
-    console.log("[Sync] Salvo localmente com sucesso.");
+    console.log("[Sync] Salvo localmente.");
 
-    // 2. Try to sync with Google Sheets if token exists
-    const user = StorageService.getCurrentUser();
-    const sheetId = StorageService.getSpreadsheetId();
-
-    if (user && user.accessToken) {
+    // 2. Try to sync with Firebase
+    if (FirebaseService.isInitialized()) {
       try {
-        console.log(`[Sync] Iniciando envio para Planilha ID: ${sheetId}...`);
-        if (existingIndex === -1) {
-            await SheetsService.appendTicket(user.accessToken, sheetId, ticket);
-        } else {
-            await SheetsService.updateTicket(user.accessToken, sheetId, ticket);
-        }
-        console.log("[Sync] Sincronizado com Google Sheets com sucesso!");
-      } catch (error: any) {
-        console.error("[Sync] CRÍTICO: Erro ao salvar na planilha:", error);
-        // Lança erro para que a UI possa avisar o usuário, se necessário
-        // Mas o dado já está salvo localmente.
-        throw error; 
+        console.log("[Sync] Enviando para Firebase...");
+        await FirebaseService.saveTicket(ticket);
+        console.log("[Sync] Sincronizado com sucesso!");
+      } catch (error) {
+        console.error("[Sync] Erro ao enviar para Firebase:", error);
+        throw error;
       }
-    } else {
-      console.warn("[Sync] Token de acesso Google não encontrado. Dados salvos apenas localmente.");
     }
   },
 

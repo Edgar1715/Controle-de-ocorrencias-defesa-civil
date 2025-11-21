@@ -61,13 +61,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1 uppercase">E-mail (Login)</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">mail</span>
+                <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-lg z-10">mail</span>
                 <input 
                   type="email" 
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-civil-orange focus:border-transparent text-sm"
+                  className="w-full pl-10 pr-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-civil-orange focus:border-transparent text-sm placeholder-gray-400"
                   placeholder="seu@email.com"
                 />
               </div>
@@ -75,13 +75,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1 uppercase">Senha</label>
               <div className="relative">
-                 <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">lock</span>
+                 <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-lg z-10">lock</span>
                 <input 
                   type="password" 
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-civil-orange focus:border-transparent text-sm"
+                  className="w-full pl-10 pr-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-civil-orange focus:border-transparent text-sm placeholder-gray-400"
                   placeholder="********"
                 />
               </div>

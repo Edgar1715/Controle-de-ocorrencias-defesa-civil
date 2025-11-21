@@ -1,11 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { User, UserRole, Ticket } from '../types';
 import { StorageService } from '../services/storageService';
 import { DefesaCivilLogo } from '../components/Logo';
-
-// Declare Google GIS Type
-declare var google: any;
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -13,9 +10,11 @@ export const UserManagement: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // Config States
-  const [spreadsheetId, setSpreadsheetId] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [firebaseConfig, setFirebaseConfig] = useState('');
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  
+  // Logo Upload Refs
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Modal State for Adding User
   const [showAddModal, setShowAddModal] = useState(false);
@@ -35,14 +34,19 @@ export const UserManagement: React.FC = () => {
     const current = StorageService.getCurrentUser();
     
     // Configs
-    setSpreadsheetId(StorageService.getSpreadsheetId());
-    setClientId(StorageService.getClientId());
-    setIsGoogleConnected(!!current?.accessToken);
+    const storedConfig = StorageService.getFirebaseConfig();
+    setFirebaseConfig(storedConfig);
+    
+    try {
+        // Verificação simples se o JSON é válido e tem projeto
+        if (storedConfig && JSON.parse(storedConfig).projectId) {
+            setIsFirebaseConnected(true);
+        }
+    } catch(e) { setIsFirebaseConnected(false); }
 
     setUsers(allUsers);
     setCurrentUser(current);
 
-    // Load tickets (allows checking if connection works)
     const allTickets = await StorageService.getTickets();
     setTickets(allTickets);
   };
@@ -107,36 +111,46 @@ export const UserManagement: React.FC = () => {
 
   const handleSaveConfig = () => {
     if (currentUser?.role !== UserRole.ADMIN) return;
-    StorageService.setSpreadsheetId(spreadsheetId);
-    StorageService.setClientId(clientId);
-    alert('Configurações salvas!');
+    
+    // Tenta salvar e inicializar
+    const success = StorageService.setFirebaseConfig(firebaseConfig);
+    
+    if (success) {
+        setIsFirebaseConnected(true);
+        alert('Configuração do Firebase salva e conectada com sucesso!');
+        loadData(); // Recarrega dados
+    } else {
+        alert('JSON inválido ou erro na conexão. Verifique o formato da configuração.');
+        setIsFirebaseConnected(false);
+    }
+  };
+  
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      if (file.size > 2 * 1024 * 1024) {
+        alert("A imagem é muito grande. Por favor, escolha uma imagem menor que 2MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        StorageService.setCustomLogo(base64);
+        if (confirm("Brasão atualizado com sucesso! A página será recarregada para aplicar as mudanças.")) {
+           window.location.reload();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleGoogleAuth = () => {
-    if (!clientId) {
-      alert('Por favor, insira o Client ID do Google Cloud antes de conectar.');
-      return;
+  const handleResetLogo = () => {
+    if (confirm("Deseja remover o brasão personalizado e voltar ao padrão?")) {
+      StorageService.removeCustomLogo();
+      window.location.reload();
     }
-
-    if (typeof google === 'undefined') {
-        alert('Google Identity Services não carregado. Verifique sua conexão.');
-        return;
-    }
-
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/spreadsheets',
-      callback: (response: any) => {
-        if (response.access_token) {
-          StorageService.updateCurrentUserToken(response.access_token);
-          setIsGoogleConnected(true);
-          alert('Conectado com Google Drive com sucesso! Os chamados agora serão salvos na planilha.');
-          loadData(); // Refresh to test connection
-        }
-      },
-    });
-
-    client.requestAccessToken();
   };
 
   const canEditPermissions = currentUser?.role === UserRole.ADMIN;
@@ -152,7 +166,7 @@ export const UserManagement: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-800">Gestão de Equipe</h1>
               <p className="text-gray-500 text-sm">
                 {canEditPermissions 
-                  ? 'Administração de Usuários e Configurações' 
+                  ? 'Administração de Usuários e Banco de Dados' 
                   : 'Visualização de Equipe e Progresso'}
               </p>
           </div>
@@ -168,66 +182,93 @@ export const UserManagement: React.FC = () => {
           </button>
         )}
       </div>
-
-      {/* Google Sheets Configuration Panel (Admin Only) */}
+      
+      {/* System Customization Panel (Admin Only) */}
       {canEditPermissions && (
-        <div className="bg-white rounded-xl shadow-sm border border-green-100 overflow-hidden mb-8">
-          <div className="bg-green-50 px-6 py-4 border-b border-green-100 flex items-center gap-2">
-             <span className="material-symbols-outlined text-green-700">table_view</span>
-             <h2 className="font-bold text-green-900">Integração Google Sheets (Drive)</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-orange-100 overflow-hidden mb-8">
+           <div className="bg-orange-50 px-6 py-4 border-b border-orange-100 flex items-center gap-2">
+             <span className="material-symbols-outlined text-civil-orange">settings</span>
+             <h2 className="font-bold text-orange-900">Personalização do Sistema</h2>
+          </div>
+          <div className="p-6 flex items-center gap-8">
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-800 mb-2">Brasão / Logotipo</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Você pode alterar o brasão exibido no centro do triângulo azul. 
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => logoInputRef.current?.click()}
+                  className="px-4 py-2 bg-civil-blue text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-800 flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined">upload</span>
+                  Carregar Imagem
+                </button>
+                <button 
+                  onClick={handleResetLogo}
+                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200"
+                >
+                  Restaurar Padrão
+                </button>
+                <input 
+                  type="file" 
+                  ref={logoInputRef} 
+                  onChange={handleLogoUpload} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+               <p className="text-xs text-gray-400 uppercase font-bold mb-2">Prévia Atual</p>
+               <DefesaCivilLogo size="lg" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Firebase Configuration Panel (Admin Only) */}
+      {canEditPermissions && (
+        <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden mb-8">
+          <div className="bg-amber-50 px-6 py-4 border-b border-amber-100 flex items-center gap-2">
+             <span className="material-symbols-outlined text-amber-700">database</span>
+             <h2 className="font-bold text-amber-900">Banco de Dados (Firebase)</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
                 <p className="text-xs text-gray-500">
-                  Para salvar os dados no seu Drive, crie um projeto no <a href="https://console.cloud.google.com/" target="_blank" className="text-blue-600 underline">Google Cloud Console</a>, ative a API do Sheets e crie um ID do Cliente OAuth 2.0.
+                  Cole abaixo o objeto de configuração do seu projeto Firebase. Você pode encontrá-lo no Console do Firebase &gt; Configurações do Projeto &gt; Seus aplicativos &gt; SDK setup and configuration (Config).
                 </p>
                 <div>
-                   <label className="block text-xs font-bold text-gray-600 mb-1">Google Cloud Client ID (OAuth)</label>
-                   <input 
-                      type="text" 
-                      value={clientId} 
-                      onChange={e => setClientId(e.target.value)}
-                      className="w-full border rounded p-2 text-sm" 
-                      placeholder="Ex: 123456-abcde.apps.googleusercontent.com"
-                   />
-                </div>
-                <div>
-                   <label className="block text-xs font-bold text-gray-600 mb-1">ID da Planilha (Spreadsheet ID)</label>
-                   <input 
-                      type="text" 
-                      value={spreadsheetId} 
-                      onChange={e => setSpreadsheetId(e.target.value)}
-                      className="w-full border rounded p-2 text-sm" 
-                      placeholder="ID da URL da Planilha"
+                   <label className="block text-xs font-bold text-gray-600 mb-1">Configuração JSON</label>
+                   <textarea 
+                      value={firebaseConfig} 
+                      onChange={e => setFirebaseConfig(e.target.value)}
+                      className="w-full border rounded p-2 text-xs font-mono h-32 bg-gray-50 text-gray-800" 
+                      placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }'
                    />
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={handleSaveConfig}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 text-sm"
+                    className="px-4 py-2 bg-civil-orange text-white font-bold rounded hover:bg-orange-700 text-sm"
                   >
-                    Salvar IDs
+                    Salvar e Conectar
                   </button>
                 </div>
             </div>
             
             <div className="flex flex-col justify-center items-center border-l border-gray-100 pl-8">
-                <div className={`h-16 w-16 rounded-full flex items-center justify-center mb-4 ${isGoogleConnected ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                   <span className="material-symbols-outlined text-3xl">cloud_sync</span>
+                <div className={`h-16 w-16 rounded-full flex items-center justify-center mb-4 ${isFirebaseConnected ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                   <span className="material-symbols-outlined text-3xl">dns</span>
                 </div>
                 <h3 className="font-bold text-gray-800 mb-1">Status da Conexão</h3>
-                <p className={`text-sm mb-4 ${isGoogleConnected ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                  {isGoogleConnected ? 'Conectado e Sincronizando' : 'Desconectado'}
+                <p className={`text-sm mb-4 ${isFirebaseConnected ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
+                  {isFirebaseConnected ? 'Conectado ao Firestore' : 'Operando Offline (Local)'}
                 </p>
-                <button 
-                  onClick={handleGoogleAuth}
-                  className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg shadow-sm flex items-center gap-2 font-medium text-sm transition-all"
-                >
-                  <img src="https://www.google.com/favicon.ico" alt="G" className="w-4 h-4" />
-                  {isGoogleConnected ? 'Renovar Acesso Google' : 'Conectar Google Drive'}
-                </button>
                 <p className="text-[10px] text-gray-400 mt-2 text-center max-w-xs">
-                   Isso abrirá um popup do Google pedindo permissão para editar suas planilhas.
+                   Se desconectado, os dados serão salvos apenas no navegador deste dispositivo.
                 </p>
             </div>
           </div>
