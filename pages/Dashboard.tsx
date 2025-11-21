@@ -53,6 +53,17 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     }
   };
 
+  // Helper to check if ticket is overdue
+  const isTicketOverdue = (ticket: Ticket) => {
+    if (ticket.status === TicketStatus.RESOLVED || ticket.status === TicketStatus.CANCELLED) {
+      return false;
+    }
+    const createdDate = new Date(ticket.createdAt);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    return createdDate < today;
+  };
+
   const filteredTickets = filter === 'ALL' ? tickets : tickets.filter(t => t.status === filter);
 
   return (
@@ -124,11 +135,24 @@ export const Dashboard: React.FC<DashboardProps> = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredTickets.map((ticket) => (
-                <tr key={ticket.id} className="hover:bg-gray-50 transition-colors group">
+              {filteredTickets.map((ticket) => {
+                const isOverdue = isTicketOverdue(ticket);
+                
+                return (
+                <tr 
+                  key={ticket.id} 
+                  className={`transition-colors group ${
+                    isOverdue 
+                      ? 'bg-red-50 hover:bg-red-100 border-l-4 border-red-500' 
+                      : 'hover:bg-gray-50 border-l-4 border-transparent'
+                  }`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{ticket.id}</div>
-                    <div className="text-xs text-gray-500">{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}</div>
+                    <div className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-red-700 font-bold' : 'text-gray-500'}`}>
+                      {isOverdue && <span className="material-symbols-outlined text-[14px]" title="Chamado Atrasado">event_busy</span>}
+                      {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 line-clamp-1">{ticket.title}</div>
@@ -157,7 +181,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                     </Link>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
               {filteredTickets.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-400">

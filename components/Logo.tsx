@@ -1,26 +1,18 @@
 
-import React, { useEffect, useState } from 'react';
-import { StorageService } from '../services/storageService';
+import React, { useState } from 'react';
 
-// URL estável da Wikimedia para o Brasão de Bertioga (Fallback)
+// URL do Brasão.
+// FORMATO IDEAL: PNG com fundo transparente.
 const DEFAULT_CREST_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Bras%C3%A3o_de_Bertioga.svg/320px-Bras%C3%A3o_de_Bertioga.svg.png";
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  showText?: boolean;
+  showText?: boolean; 
 }
 
-export const DefesaCivilLogo: React.FC<LogoProps> = ({ size = 'md', className = '', showText = false }) => {
-  const [logoSrc, setLogoSrc] = useState<string>(DEFAULT_CREST_URL);
-
-  useEffect(() => {
-    // Verifica se existe um logo customizado salvo
-    const customLogo = StorageService.getCustomLogo();
-    if (customLogo) {
-      setLogoSrc(customLogo);
-    }
-  }, []);
+export const DefesaCivilLogo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
+  const [imgError, setImgError] = useState(false);
 
   const dimensions = {
     sm: 'w-10 h-10',
@@ -29,20 +21,14 @@ export const DefesaCivilLogo: React.FC<LogoProps> = ({ size = 'md', className = 
     xl: 'w-32 h-32',
   };
 
-  const textSize = {
-    sm: 'text-[0.4rem]',
-    md: 'text-[0.6rem]',
-    lg: 'text-[0.8rem]',
-    xl: 'text-xs',
-  };
-
   return (
     <div className={`relative flex items-center justify-center ${dimensions[size]} ${className}`}>
       {/* Orange Hexagon Background */}
       <div 
         className="absolute inset-0 bg-civil-orange shadow-sm" 
         style={{
-          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
+          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+          zIndex: 0
         }}
       ></div>
       
@@ -50,29 +36,28 @@ export const DefesaCivilLogo: React.FC<LogoProps> = ({ size = 'md', className = 
       <div 
         className="absolute inset-0 bg-civil-blue" 
         style={{
-          clipPath: 'polygon(50% 10%, 90% 80%, 10% 80%)' 
+          clipPath: 'polygon(50% 10%, 90% 80%, 10% 80%)',
+          zIndex: 10
         }}
       ></div>
       
-      {/* City Crest / Logo */}
-      <img 
-        src={logoSrc} 
-        alt="Brasão Bertioga" 
-        className="relative z-10 h-[40%] w-auto object-contain mb-1 drop-shadow-md transition-opacity"
-        onError={(e) => {
-          // Se falhar, tenta voltar para o default se não for ele, ou esconde
-          if (logoSrc !== DEFAULT_CREST_URL) {
-             setLogoSrc(DEFAULT_CREST_URL);
-          } else {
-             (e.target as HTMLImageElement).style.display = 'none';
-          }
-        }}
-      />
-      
-      {/* Text Overlay */}
-      <div className={`absolute bottom-[15%] z-10 font-bold text-white/90 tracking-widest ${textSize[size]} w-full text-center drop-shadow-sm`}>
-        DEFESA CIVIL
-      </div>
+      {/* City Crest / Logo - Centralizado no triângulo azul */}
+      {!imgError ? (
+        <img 
+          src={DEFAULT_CREST_URL} 
+          alt="Brasão Bertioga" 
+          onError={() => setImgError(true)}
+          className="relative z-20 h-[50%] w-auto object-contain mt-[10%] drop-shadow-sm transition-transform hover:scale-110"
+        />
+      ) : (
+        // Fallback caso a imagem quebre
+        <span 
+          className="material-symbols-outlined text-white relative z-20 mt-[10%]"
+          style={{ fontSize: size === 'sm' ? '1rem' : size === 'md' ? '1.5rem' : '2.5rem' }}
+        >
+          shield
+        </span>
+      )}
     </div>
   );
 };

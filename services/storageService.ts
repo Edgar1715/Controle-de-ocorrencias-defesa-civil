@@ -1,13 +1,10 @@
 
 import { Ticket, TicketStatus, TicketPriority, User, UserRole } from '../types';
-import { FirebaseService, FirebaseConfig } from './firebaseService';
 
 // Constants for LocalStorage keys
 const TICKETS_KEY = 'dc_bertioga_tickets';
 const USER_SESSION_KEY = 'dc_current_user';
 const USERS_DB_KEY = 'dc_users_db';
-const FIREBASE_CONFIG_KEY = 'dc_firebase_config';
-const CUSTOM_LOGO_KEY = 'dc_custom_logo';
 
 // Admin Credentials
 const ADMIN_CREDENTIALS = {
@@ -27,25 +24,14 @@ interface StoredUser extends User {
 
 // --- INICIALIZAÇÃO ---
 
-// Tenta inicializar o Firebase ao carregar o script se houver config
-const storedConfig = localStorage.getItem(FIREBASE_CONFIG_KEY);
-if (storedConfig) {
-  try {
-    const config = JSON.parse(storedConfig);
-    FirebaseService.init(config);
-  } catch (e) {
-    console.error("Configuração inválida do Firebase no Storage.");
-  }
-}
-
 // Seed initial data if empty
 const seedLocalData = () => {
   if (!localStorage.getItem(TICKETS_KEY)) {
     const tickets: Ticket[] = [
       {
         id: 'CH-LOCAL-001',
-        title: 'Exemplo Local (Offline)',
-        description: 'Este dado existe apenas no navegador local enquanto o banco de dados não é conectado.',
+        title: 'Exemplo Inicial',
+        description: 'Chamado de exemplo gerado localmente.',
         address: 'Rua Exemplo, 00',
         neighborhood: 'Centro',
         requesterName: 'Sistema',
@@ -57,7 +43,7 @@ const seedLocalData = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         photos: [],
-        aiAnalysis: 'Análise local.'
+        aiAnalysis: 'Análise automática.'
       }
     ];
     localStorage.setItem(TICKETS_KEY, JSON.stringify(tickets));
@@ -83,7 +69,9 @@ const seedLocalData = () => {
   };
 
   if (adminIndex >= 0) {
-    usersDb[adminIndex] = adminUser;
+    // Preserva a senha se o admin já mudou localmente, caso contrário reseta para a default do código
+    // Para garantir que o login funcione com a senha fornecida no código, vamos forçar a atualização aqui neste caso
+    usersDb[adminIndex] = { ...usersDb[adminIndex], ...adminUser, password: usersDb[adminIndex].password || ADMIN_CREDENTIALS.password };
   } else {
     usersDb.push(adminUser);
   }
@@ -137,7 +125,7 @@ export const StorageService = {
     return { success: true, user: safeUser };
   },
 
-  // --- USER MANAGEMENT (ADMIN ONLY) ---
+  // --- USER MANAGEMENT ---
 
   getAllUsers: (): User[] => {
     const usersStr = localStorage.getItem(USERS_DB_KEY);
@@ -159,61 +147,23 @@ export const StorageService = {
     return true;
   },
 
-  // --- CONFIG MANAGEMENT ---
+  updateUserPassword: (targetEmail: string, newPassword: string): boolean => {
+    const usersStr = localStorage.getItem(USERS_DB_KEY);
+    if (!usersStr) return false;
 
-  getFirebaseConfig: (): string => {
-    return localStorage.getItem(FIREBASE_CONFIG_KEY) || '';
-  },
+    const users: StoredUser[] = JSON.parse(usersStr);
+    const index = users.findIndex(u => u.email === targetEmail);
 
-  setFirebaseConfig: (configJson: string) => {
-    // Tenta validar JSON
-    try {
-      const config = JSON.parse(configJson);
-      if (!config.projectId) throw new Error("Config inválida");
-      
-      localStorage.setItem(FIREBASE_CONFIG_KEY, configJson);
-      
-      // Tenta inicializar
-      const success = FirebaseService.init(config);
-      return success;
-    } catch (e) {
-      console.error("Erro ao salvar config:", e);
-      return false;
-    }
-  },
+    if (index === -1) return false;
 
-  getCustomLogo: (): string | null => {
-    return localStorage.getItem(CUSTOM_LOGO_KEY);
-  },
-
-  setCustomLogo: (base64Image: string) => {
-    localStorage.setItem(CUSTOM_LOGO_KEY, base64Image);
-  },
-
-  removeCustomLogo: () => {
-    localStorage.removeItem(CUSTOM_LOGO_KEY);
+    users[index].password = newPassword;
+    localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+    return true;
   },
 
   // --- DATA OPERATIONS ---
 
   getTickets: async (): Promise<Ticket[]> => {
-    // Se Firebase estiver conectado, usa ele
-    if (FirebaseService.isInitialized()) {
-      try {
-        console.log("[Sync] Buscando dados do Firebase...");
-        const fbTickets = await FirebaseService.fetchTickets();
-        
-        // Atualiza cache local para backup
-        localStorage.setItem(TICKETS_KEY, JSON.stringify(fbTickets));
-        return fbTickets;
-      } catch (error) {
-        console.error("[Sync] Erro ao acessar Firebase (usando cache local):", error);
-      }
-    } else {
-      console.log("[Sync] Firebase não configurado. Usando modo offline.");
-    }
-
-    // Fallback para Local Storage
     const data = localStorage.getItem(TICKETS_KEY);
     return data ? JSON.parse(data) : [];
   },
@@ -229,7 +179,6 @@ export const StorageService = {
   },
 
   saveTicket: async (ticket: Ticket): Promise<void> => {
-    // 1. Save Locally First (Optimistic UI)
     const tickets = StorageService.getTicketsLocal();
     const existingIndex = tickets.findIndex(t => t.id === ticket.id);
     
@@ -239,19 +188,7 @@ export const StorageService = {
       tickets.unshift(ticket);
     }
     localStorage.setItem(TICKETS_KEY, JSON.stringify(tickets));
-    console.log("[Sync] Salvo localmente.");
-
-    // 2. Try to sync with Firebase
-    if (FirebaseService.isInitialized()) {
-      try {
-        console.log("[Sync] Enviando para Firebase...");
-        await FirebaseService.saveTicket(ticket);
-        console.log("[Sync] Sincronizado com sucesso!");
-      } catch (error) {
-        console.error("[Sync] Erro ao enviar para Firebase:", error);
-        throw error;
-      }
-    }
+    console.log("[Storage] Salvo localmente.");
   },
 
   getCurrentUser: (): User | null => {

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -10,6 +11,14 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
+      // Previne erro "process is not defined" em navegadores/hospedagem estática
+      window.process = {
+        env: {
+          NODE_ENV: 'production',
+          API_KEY: '' // O código usará isso se não houver variáveis de ambiente reais injetadas
+        }
+      };
+
       tailwind.config = {
         theme: {
           extend: {
@@ -94,10 +103,7 @@
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
-    "firebase/app": "https://esm.sh/firebase@10.8.0/app",
-    "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^6.22.3"
   }
 }
 </script>
