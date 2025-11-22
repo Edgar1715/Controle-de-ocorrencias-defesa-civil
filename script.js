@@ -3,7 +3,7 @@
  * --------------------------------------
  * Arquivo principal de lógica contendo:
  * 1. Configuração e Estado Global
- * 2. Serviços (API/Storage, Auth, AI)
+ * 2. Serviços (API/Storage, Auth)
  * 3. Roteamento e Renderização
  * 4. Componentes (Templates HTML)
  */
@@ -14,7 +14,6 @@ const APP_CONFIG = {
   // Se true, tenta usar a API do Postgres. Se false, usa LocalStorage.
   USE_API: false, 
   API_BASE_URL: 'https://api.seusite.com.br', // URL do seu Backend Node.js/Python ligado ao Postgres
-  GEMINI_API_KEY: process.env.API_KEY || '',
   ADMIN_EMAIL: 'edgarcarolino.2022@gmail.com'
 };
 
@@ -91,8 +90,7 @@ const LocalStorageService = {
         createdBy: 'JcxBmDa5TrZtrrZm550Qj0nOynA3',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        photos: [],
-        aiAnalysis: 'Análise automática.'
+        photos: []
       }];
       localStorage.setItem(this.KEYS.TICKETS, JSON.stringify(initialTickets));
     }
@@ -245,34 +243,6 @@ const DataService = {
   getAllUsers: () => LocalStorageService.getAllUsers(),
   updateUserRole: (e, r) => LocalStorageService.updateUserRole(e, r),
   updateUserPassword: (e, p) => LocalStorageService.updateUserPassword(e, p)
-};
-
-
-/**
- * SERVICE: Gemini AI
- */
-import { GoogleGenAI } from "@google/genai";
-
-const GeminiService = {
-  async analyze(description) {
-    if (!APP_CONFIG.GEMINI_API_KEY) {
-      return { priority: 'Média', summary: 'Chave de API não configurada.', category: 'Geral' };
-    }
-    
-    try {
-      const ai = new GoogleGenAI({ apiKey: APP_CONFIG.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Analise este chamado de Defesa Civil: "${description}". Retorne JSON com: priority (Baixa, Média, Alta, Crítica), summary (resumo curto), category (ex: Alagamento).`,
-        config: { responseMimeType: "application/json" }
-      });
-      
-      return JSON.parse(response.text);
-    } catch (e) {
-      console.error(e);
-      return { priority: 'Média', summary: 'Erro na análise IA.', category: 'Geral' };
-    }
-  }
 };
 
 // --- 3. COMPONENTES (VIEWS) ---
@@ -480,10 +450,6 @@ const Components = {
             <div>
                 <label class="block text-sm font-medium text-gray-700">Descrição Detalhada</label>
                 <textarea name="description" id="descInput" rows="4" required class="w-full border p-2 rounded mt-1 bg-white"></textarea>
-                <button type="button" onclick="Handlers.analyzeAI()" class="mt-2 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm">auto_awesome</span> Analisar com IA
-                </button>
-                <div id="aiResult" class="hidden mt-2 p-3 bg-blue-50 text-blue-900 text-sm rounded border border-blue-100"></div>
             </div>
 
             <!-- Local -->
@@ -510,7 +476,7 @@ const Components = {
                 <label class="block text-sm font-medium text-gray-700 mb-2">Prioridade</label>
                 <select name="priority" id="priorityInput" class="w-full border p-2 rounded bg-white">
                     <option value="Baixa">Baixa</option>
-                    <option value="Média">Média</option>
+                    <option value="Média" selected>Média</option>
                     <option value="Alta">Alta</option>
                     <option value="Crítica">Crítica</option>
                 </select>
@@ -553,12 +519,6 @@ const Components = {
                     <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Descrição</h3>
                     <p class="text-gray-800 whitespace-pre-wrap">${ticket.description}</p>
                 </div>
-
-                ${ticket.aiAnalysis ? `
-                <div class="bg-blue-50 p-4 rounded border border-blue-100">
-                    <h3 class="text-xs font-bold text-blue-800 uppercase mb-1">Análise IA</h3>
-                    <p class="text-sm text-blue-900">${ticket.aiAnalysis}</p>
-                </div>` : ''}
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                     <div>
@@ -635,7 +595,6 @@ const Handlers = {
         createdBy: user ? user.email : 'anon',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        aiAnalysis: document.getElementById('aiResult').innerText || undefined,
         location: f.lat.value ? { latitude: parseFloat(f.lat.value), longitude: parseFloat(f.lng.value) } : undefined,
         photos: []
     };
@@ -660,29 +619,6 @@ const Handlers = {
             btn.innerText = 'Tentar Novamente GPS';
         }
     );
-  },
-
-  async analyzeAI() {
-    const desc = document.getElementById('descInput').value;
-    const btn = document.querySelector('button[onclick="Handlers.analyzeAI()"]');
-    const resDiv = document.getElementById('aiResult');
-    
-    if(desc.length < 10) return alert("Digite mais detalhes.");
-    
-    btn.disabled = true;
-    btn.innerHTML = 'Analisando...';
-    
-    const result = await GeminiService.analyze(desc);
-    
-    resDiv.classList.remove('hidden');
-    resDiv.innerHTML = `<strong>Sugestão:</strong> Prioridade ${result.priority}. <br>${result.summary}`;
-    
-    // Auto-fill priority
-    const sel = document.getElementById('priorityInput');
-    if(sel) sel.value = result.priority;
-    
-    btn.disabled = false;
-    btn.innerHTML = '<span class="material-symbols-outlined text-sm">auto_awesome</span> Analisar com IA';
   },
   
   async updateStatus(id, status) {
